@@ -7,6 +7,9 @@
   <meta name="theme-color" content="#f7f2ed">
   <title>Admin Lite — AIDEMA</title>
   <link rel="stylesheet" href="admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="supabase-config.js" defer></script>
+  <script src="supabase-client.js" defer></script>
   <script src="admin.js" defer></script>
 </head>
 <body>
@@ -28,9 +31,41 @@
 
   <main class="admin-container admin-main">
     <section class="intro" aria-labelledby="page-title">
-      <p class="eyebrow">Локальный генератор товаров</p>
-      <h1 id="page-title">Новый товар для <em>products.js</em></h1>
-      <p>Заполните форму, проверьте готовый объект и скопируйте его в каталог. Данные никуда не отправляются и сохраняются только после ручной вставки в файл.</p>
+      <p class="eyebrow">Каталог · Phase 1</p>
+      <h1 id="page-title">Товары для <em>AIDEMA Home</em></h1>
+      <p>Одна форма работает в двух режимах: создаёт объект для <code>products.js</code> или сохраняет товар в Supabase после безопасного входа.</p>
+    </section>
+
+    <section class="backend-panel" aria-labelledby="backend-title">
+      <div class="backend-heading">
+        <div>
+          <p class="eyebrow">Supabase connection</p>
+          <h2 id="backend-title">Подключение и вход</h2>
+        </div>
+        <span class="connection-badge" id="connection-badge">Проверка…</span>
+      </div>
+
+      <p class="backend-message" id="backend-message" aria-live="polite"></p>
+
+      <form class="login-form" id="login-form" hidden>
+        <label class="field">
+          <span>Email администратора</span>
+          <input id="admin-email" name="email" type="email" autocomplete="username" required>
+        </label>
+        <label class="field">
+          <span>Пароль</span>
+          <input id="admin-password" name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="button button-primary" type="submit">Войти</button>
+      </form>
+
+      <div class="auth-user" id="auth-user" hidden>
+        <div>
+          <small>Выполнен вход</small>
+          <strong id="auth-email"></strong>
+        </div>
+        <button class="button button-small button-outline" id="logout-button" type="button">Выйти</button>
+      </div>
     </section>
 
     <div class="admin-layout">
@@ -53,7 +88,7 @@
             <label class="field">
               <span>ID <b>*</b></span>
               <input name="id" type="number" min="1" step="1" inputmode="numeric" required>
-              <small>Уникальный номер товара</small>
+              <small>Только для products.js; Supabase создаёт UUID автоматически</small>
             </label>
 
             <label class="field">
@@ -127,6 +162,10 @@
                   <input name="badges" type="checkbox" value="Акция">
                   <span>Акция</span>
                 </label>
+                <label class="choice-card">
+                  <input name="isPublished" type="checkbox">
+                  <span>Опубликован</span>
+                </label>
               </div>
             </div>
 
@@ -148,9 +187,9 @@
 
           <div class="form-grid">
             <label class="field field-wide">
-              <span>Основное изображение <b>*</b></span>
-              <input name="image" type="text" placeholder="assets/products/product/product-main.webp" required>
-              <small>Используется как fallback, если у цвета нет отдельного фото</small>
+              <span>URL изображения или локальный путь <b>*</b></span>
+              <input name="image" type="text" placeholder="https://...supabase.co/storage/v1/object/public/... или assets/products/..." required>
+              <small>Загрузите фото в Supabase Storage или assets/products, затем вставьте публичный URL/путь. Поле используется и как fallback для цветов.</small>
             </label>
 
             <label class="field field-wide">
@@ -184,10 +223,29 @@
           <div class="specs-list" id="specs-list"></div>
         </section>
 
-        <div class="form-actions">
-          <button class="button button-primary" type="submit">Сгенерировать товар</button>
+        <div class="action-modes">
+          <div class="action-mode">
+            <span>A</span>
+            <div>
+              <h3>Сгенерировать JS-объект</h3>
+              <p>Локальный fallback для ручной вставки в products.js.</p>
+            </div>
+            <button class="button button-outline" type="submit">Сгенерировать товар</button>
+          </div>
+          <div class="action-mode action-mode-primary">
+            <span>B</span>
+            <div>
+              <h3>Сохранить в Supabase</h3>
+              <p>Создаёт или обновляет товар по slug. Требуется вход администратора.</p>
+            </div>
+            <button class="button button-primary" id="save-supabase" type="button" disabled>Сохранить в Supabase</button>
+          </div>
+        </div>
+
+        <div class="form-actions form-utilities">
           <button class="button button-outline" id="fill-example" type="button">Заполнить пример</button>
           <button class="button button-quiet" id="clear-form" type="button">Очистить форму</button>
+          <p class="save-status" id="save-status" aria-live="polite"></p>
         </div>
       </form>
 
@@ -208,8 +266,8 @@
         </div>
 
         <div class="local-note">
-          <strong>Локальный режим</strong>
-          <p>Панель не изменяет <code>products.js</code> автоматически. Вы сами контролируете, какой объект попадёт в каталог.</p>
+          <strong>Два независимых режима</strong>
+          <p>Генератор не изменяет <code>products.js</code> автоматически. Запись в Supabase выполняется отдельно и только для пользователя из таблицы <code>admin_users</code>.</p>
         </div>
       </aside>
     </div>
@@ -218,7 +276,7 @@
   <footer class="admin-footer">
     <div class="admin-container">
       <span>AIDEMA Admin Lite</span>
-      <span>Без backend и базы данных</span>
+      <span>Supabase · Phase 1</span>
     </div>
   </footer>
 </body>

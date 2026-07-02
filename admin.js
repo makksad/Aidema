@@ -36,7 +36,8 @@
       { label: "Комплектация", value: "Кастрюля и крышка" }
     ],
     imageAlt: "Кастрюля AIDEMA объёмом 5 литров",
-    sortOrder: 9
+    sortOrder: 9,
+    isPublished: true
   };
 
   const form = document.querySelector("#product-form");
@@ -47,8 +48,17 @@
   const output = document.querySelector("#code-output");
   const copyButton = document.querySelector("#copy-code");
   const copyStatus = document.querySelector("#copy-status");
+  const saveButton = document.querySelector("#save-supabase");
+  const saveStatus = document.querySelector("#save-status");
+  const connectionBadge = document.querySelector("#connection-badge");
+  const backendMessage = document.querySelector("#backend-message");
+  const loginForm = document.querySelector("#login-form");
+  const authUser = document.querySelector("#auth-user");
+  const authEmail = document.querySelector("#auth-email");
   const imageValues = new Map();
   let slugWasEdited = false;
+  let supabaseClient = null;
+  let isCurrentUserAdmin = false;
 
   function field(name) {
     return form.elements.namedItem(name);
@@ -162,41 +172,233 @@
     }));
   }
 
-  function buildObjectCode() {
+  function collectProductForm() {
     rememberImageValues();
     const colors = selectedColorIds();
-    const badges = Array.from(form.querySelectorAll('input[name="badges"]:checked'), (input) => input.value);
-    const specs = collectSpecs();
-    const colorImageEntries = colors
-      .filter((id) => imageValues.get(id))
-      .map((id) => `        ${id}: ${quote(imageValues.get(id))}`);
+    const imagesByColor = {};
+
+    colors.forEach((id) => {
+      const path = imageValues.get(id);
+      if (path) imagesByColor[id] = path;
+    });
+
+    return {
+      id: Number(field("id").value),
+      slug: field("slug").value.trim(),
+      brand: field("brand").value.trim(),
+      name: field("name").value.trim(),
+      category: field("category").value.trim(),
+      categoryLabel: field("categoryLabel").value.trim(),
+      description: field("description").value.trim(),
+      price: Number(field("price").value),
+      oldPrice: field("oldPrice").value === "" ? null : Number(field("oldPrice").value),
+      inStock: field("inStock").checked,
+      badges: Array.from(form.querySelectorAll('input[name="badges"]:checked'), (input) => input.value),
+      image: field("image").value.trim(),
+      colors,
+      imagesByColor,
+      specs: collectSpecs(),
+      imageAlt: field("imageAlt").value.trim(),
+      sortOrder: Number(field("sortOrder").value),
+      isPublished: field("isPublished").checked
+    };
+  }
+
+  function validateProductForm() {
+    validateColors();
+    return form.reportValidity();
+  }
+
+  function buildObjectCode() {
+    const product = collectProductForm();
+    const colorImageEntries = Object.entries(product.imagesByColor)
+      .map(([id, path]) => `        ${id}: ${quote(path)}`);
 
     const imagesByColorCode = colorImageEntries.length
       ? `{\n${colorImageEntries.join(",\n")}\n      }`
       : "{}";
-    const specsCode = specs.length
-      ? `[\n${specs.map((spec) => `        { label: ${quote(spec.label)}, value: ${quote(spec.value)} }`).join(",\n")}\n      ]`
+    const specsCode = product.specs.length
+      ? `[\n${product.specs.map((spec) => `        { label: ${quote(spec.label)}, value: ${quote(spec.value)} }`).join(",\n")}\n      ]`
       : "[]";
 
     return `    {
-      id: ${Number(field("id").value)},
-      slug: ${quote(field("slug").value.trim())},
-      brand: ${quote(field("brand").value.trim())},
-      name: ${quote(field("name").value.trim())},
-      category: ${quote(field("category").value.trim())},
-      categoryLabel: ${quote(field("categoryLabel").value.trim())},
-      description: ${quote(field("description").value.trim())},
-      price: ${Number(field("price").value)},
-      oldPrice: ${field("oldPrice").value === "" ? "null" : Number(field("oldPrice").value)},
-      inStock: ${field("inStock").checked},
-      badges: ${JSON.stringify(badges)},
-      image: ${quote(field("image").value.trim())},
-      colors: createColors(${colors.map(quote).join(", ")}),
+      id: ${product.id},
+      slug: ${quote(product.slug)},
+      brand: ${quote(product.brand)},
+      name: ${quote(product.name)},
+      category: ${quote(product.category)},
+      categoryLabel: ${quote(product.categoryLabel)},
+      description: ${quote(product.description)},
+      price: ${product.price},
+      oldPrice: ${product.oldPrice === null ? "null" : product.oldPrice},
+      inStock: ${product.inStock},
+      badges: ${JSON.stringify(product.badges)},
+      image: ${quote(product.image)},
+      colors: createColors(${product.colors.map(quote).join(", ")}),
       imagesByColor: ${imagesByColorCode},
       specs: ${specsCode},
-      imageAlt: ${quote(field("imageAlt").value.trim())},
-      sortOrder: ${Number(field("sortOrder").value)}
+      imageAlt: ${quote(product.imageAlt)},
+      sortOrder: ${product.sortOrder},
+      isPublished: ${product.isPublished}
     },`;
+  }
+
+  function buildSupabasePayload() {
+    const product = collectProductForm();
+    return {
+      slug: product.slug,
+      brand: product.brand,
+      name: product.name,
+      category: product.category,
+      category_label: product.categoryLabel,
+      description: product.description,
+      price: product.price,
+      old_price: product.oldPrice,
+      in_stock: product.inStock,
+      badges: product.badges,
+      image: product.image,
+      colors: product.colors.map((id) => ({ ...COLORS.find((color) => color.id === id) })),
+      images_by_color: product.imagesByColor,
+      specs: product.specs,
+      image_alt: product.imageAlt,
+      sort_order: product.sortOrder,
+      is_published: product.isPublished
+    };
+  }
+
+  function setBackendMessage(message, isError) {
+    backendMessage.textContent = message;
+    backendMessage.classList.toggle("is-error", Boolean(isError));
+  }
+
+  function setSaveStatus(message, type) {
+    saveStatus.textContent = message;
+    saveStatus.classList.toggle("is-error", type === "error");
+    saveStatus.classList.toggle("is-success", type === "success");
+  }
+
+  async function updateAuthInterface(session) {
+    const user = session && session.user;
+    isCurrentUserAdmin = false;
+    saveButton.disabled = true;
+
+    if (!user) {
+      loginForm.hidden = false;
+      authUser.hidden = true;
+      authEmail.textContent = "";
+      setBackendMessage("Войдите через Supabase Auth, чтобы сохранять товары. Генератор JS доступен без входа.");
+      return;
+    }
+
+    loginForm.hidden = true;
+    authUser.hidden = false;
+    authEmail.textContent = user.email || user.id;
+    setBackendMessage("Проверяем права администратора…");
+
+    const { data, error } = await supabaseClient
+      .from("admin_users")
+      .select("user_id, email")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error || !data) {
+      setBackendMessage("Вход выполнен, но пользователь не добавлен в public.admin_users. Сохранение запрещено RLS.", true);
+      return;
+    }
+
+    isCurrentUserAdmin = true;
+    saveButton.disabled = false;
+    connectionBadge.textContent = "Администратор";
+    connectionBadge.className = "connection-badge is-connected";
+    setBackendMessage("Supabase подключён. Можно создавать и обновлять товары по slug.");
+  }
+
+  async function initializeSupabase() {
+    const supabaseLayer = window.AIDEMA_SUPABASE;
+    const configurationError = supabaseLayer ? supabaseLayer.getConfigurationError() : "Supabase client не загружен.";
+
+    if (configurationError) {
+      connectionBadge.textContent = "Не настроен";
+      connectionBadge.className = "connection-badge is-error";
+      setBackendMessage(`${configurationError} Локальный генератор продолжает работать.`, true);
+      loginForm.hidden = true;
+      saveButton.disabled = true;
+      return;
+    }
+
+    supabaseClient = supabaseLayer.getClient();
+    connectionBadge.textContent = "Подключён";
+    connectionBadge.className = "connection-badge is-connected";
+
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) {
+      setBackendMessage(`Не удалось проверить сессию: ${error.message}`, true);
+      return;
+    }
+
+    await updateAuthInterface(data.session);
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      window.setTimeout(() => updateAuthInterface(session), 0);
+    });
+  }
+
+  async function login(event) {
+    event.preventDefault();
+    if (!supabaseClient) return;
+
+    const submitButton = loginForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    setBackendMessage("Выполняем вход…");
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: document.querySelector("#admin-email").value.trim(),
+      password: document.querySelector("#admin-password").value
+    });
+
+    submitButton.disabled = false;
+    if (error) {
+      setBackendMessage(`Не удалось войти: ${error.message}`, true);
+      return;
+    }
+
+    document.querySelector("#admin-password").value = "";
+    await updateAuthInterface(data.session);
+  }
+
+  async function logout() {
+    if (!supabaseClient) return;
+    await supabaseClient.auth.signOut();
+    connectionBadge.textContent = "Подключён";
+    connectionBadge.className = "connection-badge is-connected";
+  }
+
+  async function saveToSupabase() {
+    if (!supabaseClient) {
+      setSaveStatus("Supabase не настроен. Заполните supabase-config.js.", "error");
+      return;
+    }
+    if (!isCurrentUserAdmin) {
+      setSaveStatus("Сначала войдите как пользователь из таблицы admin_users.", "error");
+      return;
+    }
+    if (!validateProductForm()) return;
+
+    saveButton.disabled = true;
+    setSaveStatus("Сохраняем товар…");
+
+    const { data, error } = await supabaseClient
+      .from("products")
+      .upsert(buildSupabasePayload(), { onConflict: "slug" })
+      .select("id, slug, name")
+      .single();
+
+    saveButton.disabled = false;
+    if (error) {
+      setSaveStatus(`Supabase отклонил сохранение: ${error.message}`, "error");
+      return;
+    }
+
+    setSaveStatus(`Сохранено: ${data.name} (${data.slug}).`, "success");
   }
 
   function fillExample() {
@@ -208,6 +410,7 @@
       field(name).value = EXAMPLE_PRODUCT[name];
     });
     field("inStock").checked = EXAMPLE_PRODUCT.inStock;
+    field("isPublished").checked = EXAMPLE_PRODUCT.isPublished;
 
     form.querySelectorAll('input[name="badges"]').forEach((input) => {
       input.checked = EXAMPLE_PRODUCT.badges.includes(input.value);
@@ -233,6 +436,7 @@
     renderColorImages();
     colorsError.textContent = "";
     form.querySelector('input[name="colors"]').setCustomValidity("");
+    field("isPublished").checked = true;
     clearOutput();
     field("name").focus();
   }
@@ -280,13 +484,14 @@
   document.querySelector("#add-spec").addEventListener("click", () => addSpecRow());
   document.querySelector("#fill-example").addEventListener("click", fillExample);
   document.querySelector("#clear-form").addEventListener("click", clearForm);
+  document.querySelector("#save-supabase").addEventListener("click", saveToSupabase);
+  document.querySelector("#logout-button").addEventListener("click", logout);
+  loginForm.addEventListener("submit", login);
   copyButton.addEventListener("click", copyCode);
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    validateColors();
-
-    if (!form.reportValidity()) return;
+    if (!validateProductForm()) return;
 
     output.value = buildObjectCode();
     copyButton.disabled = false;
@@ -295,4 +500,5 @@
   });
 
   fillExample();
+  initializeSupabase();
 })();
