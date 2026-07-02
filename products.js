@@ -300,5 +300,31 @@
       imageAlt: "Механическая лапшерезка CASA NOVA",
       sortOrder: 8
     },
+        {
+      id: 9,
+      slug: "losiny",
+      brand: "AIDEMA",
+      name: "лосины",
+      category: "pots",
+      categoryLabel: "лосины",
+      description: "Универсальная кастрюля для супов, гарниров и ежедневной домашней готовки.",
+      price: 250,
+      oldPrice: 300,
+      inStock: true,
+      badges: ["Хит"],
+      image: "assets/products/kastryulya-aidema-5-l/kastryulya-aidema-5-l-main.webp",
+      colors: createColors("graphite", "wine", "cream"),
+      imagesByColor: {
+        graphite: "assets/products/kastryulya-aidema-5-l/kastryulya-aidema-5-l-graphite.webp",
+        cream: "assets/products/kastryulya-aidema-5-l/kastryulya-aidema-5-l-cream.webp"
+      },
+      specs: [
+        { label: "Объём", value: "5 литров" },
+        { label: "Материал", value: "Литой чугун" },
+        { label: "Комплектация", value: "Кастрюля и крышка" }
+      ],
+      imageAlt: "Кастрюля AIDEMA объёмом 5 литров",
+      sortOrder: 9
+    },
   ]);
 })();
