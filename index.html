@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AIDEMA Home — каталог посуды AIDEMA и проверенных товаров партнёрских брендов для дома и кафе.">
+  <meta name="theme-color" content="#fffaf6">
+  <title>AIDEMA Home — каталог посуды и товаров для кухни</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="products.js" defer></script>
+  <script src="product-service.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#catalog">Перейти к каталогу</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="AIDEMA — на главную">
+        <span class="brand-mark">A</span>
+        <span class="brand-name">AIDEMA</span>
+      </a>
+
+      <nav class="main-nav" aria-label="Основная навигация">
+        <a href="#catalog">Каталог</a>
+        <a href="#advantages">Почему мы</a>
+        <a href="#contacts">Контакты</a>
+      </nav>
+
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow">Посуда для дома и профессиональной кухни</p>
+          <h1 id="hero-title">AIDEMA Home — <em>каталог посуды и товаров для кухни</em></h1>
+          <p class="hero-text">Посуда AIDEMA и проверенные товары партнёрских брендов для дома, кафе и больших семейных встреч.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#catalog">Смотреть каталог</a>
+            <a class="button button-ghost" data-general-whatsapp href="#">Написать в WhatsApp <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <span class="hero-monogram">AIDEMA</span>
+          <div class="hero-lid"><span></span></div>
+          <div class="hero-pot">
+            <span class="hero-pot-mark">A</span>
+          </div>
+          <div class="hero-shadow"></div>
+          <p>Надёжная посуда<br>для дома и бизнеса</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="advantages" id="advantages" aria-labelledby="advantages-title">
+      <div class="container">
+        <div class="section-intro advantages-intro">
+          <p class="eyebrow eyebrow-dark">Почему AIDEMA</p>
+          <h2 id="advantages-title">Посуда, которая становится частью дома</h2>
+        </div>
+
+        <div class="advantages-grid">
+          <article class="advantage-card">
+            <span class="advantage-number">01</span>
+            <div>
+              <h3>Надёжные материалы</h3>
+              <p>Посуда рассчитана на ежедневное использование и долгую службу.</p>
+            </div>
+          </article>
+          <article class="advantage-card">
+            <span class="advantage-number">02</span>
+            <div>
+              <h3>Равномерный нагрев</h3>
+              <p>Тепло распределяется по всей поверхности, помогая раскрывать вкус блюд.</p>
+            </div>
+          </article>
+          <article class="advantage-card">
+            <span class="advantage-number">03</span>
+            <div>
+              <h3>Заказ без лишних шагов</h3>
+              <p>Выберите товар и отправьте готовую заявку напрямую в WhatsApp.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="catalog-section" id="catalog" aria-labelledby="catalog-title">
+      <div class="container">
+        <div class="catalog-heading">
+          <div class="section-intro">
+            <p class="eyebrow eyebrow-dark">Коллекция AIDEMA Home</p>
+            <h2 id="catalog-title">Выберите свою посуду</h2>
+          </div>
+          <p class="catalog-lead">От компактной сковороды до большого казана — для привычных завтраков и шумных семейных ужинов.</p>
+        </div>
+
+        <div class="catalog-controls">
+          <label class="search-box" for="product-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5"></circle>
+              <path d="m16 16 4 4"></path>
+            </svg>
+            <input id="product-search" type="search" placeholder="Найти товар" autocomplete="off">
+          </label>
+
+          <div class="filters-panel" id="filters-panel" data-filter-panel>
+            <div class="filter-group">
+              <p class="filter-label">Категория</p>
+              <div class="category-filters" id="category-filters" aria-label="Фильтр по категории">
+                <button class="filter-button is-active" type="button" data-category="all" aria-pressed="true">Все</button>
+              </div>
+            </div>
+            <div class="filter-group">
+              <p class="filter-label">Бренд</p>
+              <div class="category-filters brand-filters" id="brand-filters" aria-label="Фильтр по бренду">
+                <button class="filter-button is-active" type="button" data-brand="all" aria-pressed="true">Все бренды</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="catalog-meta">
+          <p id="catalog-status" aria-live="polite">Загружаем каталог…</p>
+        </div>
+
+        <div class="products-grid" id="products-grid"></div>
+
+        <div class="empty-state" id="empty-state" hidden>
+          <span aria-hidden="true">A</span>
+          <h3>Ничего не нашли</h3>
+          <p>Попробуйте изменить запрос, категорию или выбранный бренд.</p>
+          <button class="button button-secondary" id="reset-filters" type="button">Сбросить фильтры</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <dialog class="product-dialog" id="product-dialog" aria-labelledby="dialog-product-title">
+    <div class="dialog-shell">
+      <button class="dialog-close" type="button" data-close-dialog aria-label="Закрыть подробную информацию">
+        <span aria-hidden="true">×</span>
+      </button>
+      <div id="dialog-content"></div>
+    </div>
+  </dialog>
+
+  <footer class="site-footer" id="contacts">
+    <div class="container footer-inner">
+      <a class="brand brand-footer" href="#top" aria-label="AIDEMA — наверх">
+        <span class="brand-mark">A</span>
+        <span class="brand-name">AIDEMA</span>
+      </a>
+      <p>Посуда для тёплых встреч.</p>
+      <div class="footer-contacts">
+        <a href="tel:+996503455154">+996 503 455 154</a>
+        <a data-general-whatsapp href="#">WhatsApp</a>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>© <span id="current-year"></span> AIDEMA</p>
+      <p>Каталог товаров</p>
+    </div>
+  </footer>
+
+  <a class="floating-whatsapp" data-general-whatsapp href="#" aria-label="Написать AIDEMA в WhatsApp">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20.5 11.7a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.4-4.4A8.4 8.4 0 1 1 20.5 11.7Z"></path>
+      <path d="M8.1 7.8c.2-.5.4-.5.7-.5h.5c.2 0 .4.1.5.4l.8 1.8c.1.3 0 .5-.2.7l-.6.7c-.2.2-.1.4 0 .6.5.9 1.2 1.7 2.1 2.2.2.1.4.2.6 0l.8-1c.2-.2.4-.3.7-.2l1.8.8c.3.1.5.2.5.4 0 .2-.1 1.2-.7 1.8-.5.5-1.3.8-2 .7-.5-.1-3.3-.8-5.4-3.2-1.7-1.9-2.1-3.6-2.1-4.2 0-.5.2-.8.4-1Z"></path>
+    </svg>
+  </a>
+</body>
+</html>
