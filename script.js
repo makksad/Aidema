@@ -2,6 +2,7 @@
   "use strict";
 
   const WHATSAPP_NUMBER = "+996503455154";
+  const IMAGE_FALLBACK = "assets/product-placeholder.svg";
   const state = {
     query: "",
     category: "all",
@@ -40,10 +41,17 @@
     return colorImage || product.image;
   }
 
+  function getProductGallery(product) {
+    const galleryImages = Array.isArray(product.gallery) ? product.gallery : [];
+    const colorImages = product.imagesByColor ? Object.values(product.imagesByColor) : [];
+
+    return [...new Set([product.image, ...galleryImages, ...colorImages].filter(Boolean))];
+  }
+
   function makeWhatsAppUrl(product) {
     const selectedColor = product ? getSelectedColor(product) : null;
     const message = product
-      ? `Здравствуйте! Хочу заказать товар:\nНазвание: ${product.name}\nБренд: ${product.brand}\nЦвет: ${selectedColor ? selectedColor.name : "Не указан"}\nЦена: ${formatPrice(product.price)}\nКатегория: ${product.categoryLabel || product.category}`
+      ? `Здравствуйте! Хочу оформить заказ в AIDEMA Home.\n\n*Товар:* ${product.name}\n*Бренд:* ${product.brand}\n*Категория:* ${product.categoryLabel || product.category}\n*Цвет:* ${selectedColor ? selectedColor.name : "Не указан"}\n*Цена:* ${formatPrice(product.price)}\n\n*Моё имя:* \n*Адрес:* \n*Количество:* 1`
       : "Здравствуйте! Хочу узнать подробнее о посуде AIDEMA. Помогите, пожалуйста, подобрать подходящий вариант.";
 
     const phone = WHATSAPP_NUMBER.replace(/\D/g, "");
@@ -167,11 +175,21 @@
     const stockLabel = product.inStock ? "В наличии" : "Под заказ";
     const stockClass = product.inStock ? "is-available" : "is-order";
     const selectedColor = getSelectedColor(product);
+    const selectedImage = getProductImage(product);
+    const gallery = getProductGallery(product);
 
     elements.dialogContent.innerHTML = `
       <div class="dialog-product">
-        <div class="dialog-media">
-          <img data-product-image data-product-id="${product.id}" src="${escapeHtml(getProductImage(product))}" alt="${escapeHtml(product.imageAlt || product.name)}" width="520" height="520">
+        <div class="dialog-gallery">
+          <div class="dialog-main-media">
+            <img data-product-image data-dialog-main-image data-product-id="${product.id}" src="${escapeHtml(selectedImage)}" alt="${escapeHtml(product.imageAlt || product.name)}" width="720" height="720">
+          </div>
+          <div class="dialog-thumbnails" aria-label="Галерея товара">
+            ${gallery.map((image, index) => `
+              <button class="dialog-thumbnail${image === selectedImage ? " is-active" : ""}" type="button" data-gallery-thumbnail data-product-id="${product.id}" data-gallery-image="${escapeHtml(image)}" aria-label="Показать изображение ${index + 1}" aria-pressed="${image === selectedImage}">
+                <img src="${escapeHtml(image)}" alt="" width="80" height="80">
+              </button>`).join("")}
+          </div>
         </div>
         <div class="dialog-copy">
           <div class="dialog-scroll">
@@ -210,6 +228,29 @@
       </div>`;
   }
 
+  function setActiveGalleryImage(productId, imageSrc) {
+    const normalizedProductId = String(productId);
+
+    document.querySelectorAll("[data-gallery-thumbnail]").forEach((button) => {
+      if (button.dataset.productId !== normalizedProductId) return;
+      const isActive = button.dataset.galleryImage === imageSrc;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
+    });
+  }
+
+  function selectGalleryImage(button) {
+    const productId = button.dataset.productId;
+    const imageSrc = button.dataset.galleryImage;
+
+    document.querySelectorAll("[data-dialog-main-image]").forEach((image) => {
+      if (image.dataset.productId === productId) {
+        image.src = imageSrc;
+      }
+    });
+    setActiveGalleryImage(productId, imageSrc);
+  }
+
   function updateProductSelection(product) {
     const selectedColor = getSelectedColor(product);
     const productId = String(product.id);
@@ -226,6 +267,7 @@
         image.src = getProductImage(product);
       }
     });
+    setActiveGalleryImage(productId, getProductImage(product));
 
     document.querySelectorAll("[data-whatsapp-action]").forEach((link) => {
       if (link.dataset.productId === productId) {
@@ -364,6 +406,12 @@
     });
 
     elements.dialog.addEventListener("click", (event) => {
+      const galleryButton = event.target.closest("[data-gallery-thumbnail]");
+      if (galleryButton) {
+        selectGalleryImage(galleryButton);
+        return;
+      }
+
       const colorButton = event.target.closest("[data-color-option]");
       if (colorButton) {
         selectProductColor(colorButton);
@@ -388,6 +436,19 @@
     });
   }
 
+  function setupImageFallbacks() {
+    document.addEventListener("error", (event) => {
+      const image = event.target;
+      if (!(image instanceof HTMLImageElement)) return;
+
+      const fallbackUrl = new URL(IMAGE_FALLBACK, document.baseURI).href;
+      if (image.src === fallbackUrl) return;
+
+      image.dataset.fallbackApplied = "true";
+      image.src = IMAGE_FALLBACK;
+    }, true);
+  }
+
   async function init() {
     elements.grid = document.querySelector("#products-grid");
     elements.filters = document.querySelector("#category-filters");
@@ -399,6 +460,7 @@
     elements.dialog = document.querySelector("#product-dialog");
     elements.dialogContent = document.querySelector("#dialog-content");
 
+    setupImageFallbacks();
     setupGeneralWhatsAppLinks();
     document.querySelector("#current-year").textContent = new Date().getFullYear();
 

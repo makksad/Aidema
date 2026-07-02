@@ -17,6 +17,7 @@
       colors: Array.isArray(product.colors)
         ? product.colors.map((color) => ({ ...color }))
         : [],
+      gallery: Array.isArray(product.gallery) ? [...product.gallery] : [],
       imagesByColor: product.imagesByColor ? { ...product.imagesByColor } : {},
       specs: Array.isArray(product.specs)
         ? product.specs.map((item) => ({ ...item }))
