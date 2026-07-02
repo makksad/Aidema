@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f7f2ed">
+  <title>Admin Lite — AIDEMA</title>
+  <link rel="stylesheet" href="admin.css">
+  <script src="admin.js" defer></script>
+</head>
+<body>
+  <header class="admin-header">
+    <div class="admin-container header-inner">
+      <a class="brand" href="admin.html" aria-label="AIDEMA Admin Lite">
+        <span class="brand-mark">A</span>
+        <span>
+          <strong>AIDEMA</strong>
+          <small>Admin Lite</small>
+        </span>
+      </a>
+      <a class="back-link" href="index.html">
+        <span aria-hidden="true">←</span>
+        Вернуться в каталог
+      </a>
+    </div>
+  </header>
+
+  <main class="admin-container admin-main">
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">Локальный генератор товаров</p>
+      <h1 id="page-title">Новый товар для <em>products.js</em></h1>
+      <p>Заполните форму, проверьте готовый объект и скопируйте его в каталог. Данные никуда не отправляются и сохраняются только после ручной вставки в файл.</p>
+    </section>
+
+    <div class="admin-layout">
+      <form class="product-form" id="product-form" novalidate>
+        <section class="form-section" aria-labelledby="main-fields-title">
+          <div class="section-heading">
+            <span>01</span>
+            <div>
+              <h2 id="main-fields-title">Основные данные</h2>
+              <p>Название, идентификаторы и описание товара.</p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label class="field field-wide">
+              <span>Название товара <b>*</b></span>
+              <input name="name" type="text" placeholder="Например, Кастрюля AIDEMA 5 л" required>
+            </label>
+
+            <label class="field">
+              <span>ID <b>*</b></span>
+              <input name="id" type="number" min="1" step="1" inputmode="numeric" required>
+              <small>Уникальный номер товара</small>
+            </label>
+
+            <label class="field">
+              <span>Slug <b>*</b></span>
+              <input name="slug" type="text" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="kastryulya-aidema-5-l" required>
+              <small>Формируется из названия автоматически</small>
+            </label>
+
+            <label class="field">
+              <span>Бренд <b>*</b></span>
+              <input name="brand" type="text" placeholder="AIDEMA" required>
+            </label>
+
+            <label class="field">
+              <span>Категория <b>*</b></span>
+              <input name="category" type="text" list="category-options" placeholder="pots" required>
+              <datalist id="category-options">
+                <option value="sets">Наборы</option>
+                <option value="pots">Кастрюли и казаны</option>
+                <option value="pans">Сковороды и сотейники</option>
+                <option value="tools">Кухонные аксессуары</option>
+              </datalist>
+              <small>Системное имя латиницей</small>
+            </label>
+
+            <label class="field field-wide">
+              <span>Название категории — categoryLabel <b>*</b></span>
+              <input name="categoryLabel" type="text" placeholder="Кастрюли и казаны" required>
+            </label>
+
+            <label class="field field-wide">
+              <span>Описание <b>*</b></span>
+              <textarea name="description" rows="4" placeholder="Коротко опишите назначение и преимущества товара" required></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-section" aria-labelledby="sales-fields-title">
+          <div class="section-heading">
+            <span>02</span>
+            <div>
+              <h2 id="sales-fields-title">Продажа</h2>
+              <p>Цена, наличие и отметки на карточке.</p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>Цена, сом <b>*</b></span>
+              <input name="price" type="number" min="0" step="1" inputmode="numeric" required>
+            </label>
+
+            <label class="field">
+              <span>Старая цена, сом</span>
+              <input name="oldPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="Необязательно">
+              <small>Пустое поле превратится в null</small>
+            </label>
+
+            <div class="field field-wide">
+              <span>Статус и бейджи</span>
+              <div class="choice-row">
+                <label class="choice-card">
+                  <input name="inStock" type="checkbox">
+                  <span>В наличии</span>
+                </label>
+                <label class="choice-card">
+                  <input name="badges" type="checkbox" value="Хит">
+                  <span>Хит</span>
+                </label>
+                <label class="choice-card">
+                  <input name="badges" type="checkbox" value="Акция">
+                  <span>Акция</span>
+                </label>
+              </div>
+            </div>
+
+            <label class="field">
+              <span>Порядок — sortOrder <b>*</b></span>
+              <input name="sortOrder" type="number" min="0" step="1" inputmode="numeric" required>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-section" aria-labelledby="media-fields-title">
+          <div class="section-heading">
+            <span>03</span>
+            <div>
+              <h2 id="media-fields-title">Изображения и цвета</h2>
+              <p>Пути указываются относительно папки проекта.</p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label class="field field-wide">
+              <span>Основное изображение <b>*</b></span>
+              <input name="image" type="text" placeholder="assets/products/product/product-main.webp" required>
+              <small>Используется как fallback, если у цвета нет отдельного фото</small>
+            </label>
+
+            <label class="field field-wide">
+              <span>Alt-текст изображения <b>*</b></span>
+              <input name="imageAlt" type="text" placeholder="Кастрюля AIDEMA объёмом 5 литров" required>
+            </label>
+
+            <fieldset class="field field-wide color-fieldset">
+              <legend>Цвета товара <b>*</b></legend>
+              <div class="colors-grid" id="colors-grid"></div>
+              <p class="field-error" id="colors-error" aria-live="polite"></p>
+            </fieldset>
+
+            <div class="field field-wide color-images-block">
+              <span>Изображения по цветам — imagesByColor</span>
+              <p class="field-note">Поля появятся для выбранных цветов. Их можно оставить пустыми — тогда сработает основное изображение.</p>
+              <div class="color-images" id="color-images"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section" aria-labelledby="specs-fields-title">
+          <div class="section-heading section-heading-actions">
+            <span>04</span>
+            <div>
+              <h2 id="specs-fields-title">Характеристики</h2>
+              <p>Каждая строка станет объектом в массиве specs.</p>
+            </div>
+            <button class="button button-small button-outline" id="add-spec" type="button">+ Добавить</button>
+          </div>
+          <div class="specs-list" id="specs-list"></div>
+        </section>
+
+        <div class="form-actions">
+          <button class="button button-primary" type="submit">Сгенерировать товар</button>
+          <button class="button button-outline" id="fill-example" type="button">Заполнить пример</button>
+          <button class="button button-quiet" id="clear-form" type="button">Очистить форму</button>
+        </div>
+      </form>
+
+      <aside class="output-panel" aria-labelledby="output-title">
+        <div class="output-heading">
+          <div>
+            <p class="eyebrow">Результат</p>
+            <h2 id="output-title">Объект товара</h2>
+          </div>
+          <span class="output-badge">JavaScript</span>
+        </div>
+
+        <p class="output-help">Объект уже заканчивается запятой и готов для вставки внутрь массива <code>window.AIDEMA_PRODUCTS</code>.</p>
+        <textarea class="code-output" id="code-output" rows="28" readonly spellcheck="false" aria-label="Сгенерированный JavaScript-объект" placeholder="Здесь появится готовый объект…"></textarea>
+        <div class="output-actions">
+          <button class="button button-primary" id="copy-code" type="button" disabled>Скопировать</button>
+          <p class="copy-status" id="copy-status" aria-live="polite"></p>
+        </div>
+
+        <div class="local-note">
+          <strong>Локальный режим</strong>
+          <p>Панель не изменяет <code>products.js</code> автоматически. Вы сами контролируете, какой объект попадёт в каталог.</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="admin-footer">
+    <div class="admin-container">
+      <span>AIDEMA Admin Lite</span>
+      <span>Без backend и базы данных</span>
+    </div>
+  </footer>
+</body>
+</html>
