@@ -51,7 +51,7 @@
   function makeWhatsAppUrl(product) {
     const selectedColor = product ? getSelectedColor(product) : null;
     const message = product
-      ? `Здравствуйте! Хочу оформить заказ в AIDEMA Home.\n\n*Товар:* ${product.name}\n*Бренд:* ${product.brand}\n*Категория:* ${product.categoryLabel || product.category}\n*Цвет:* ${selectedColor ? selectedColor.name : "Не указан"}\n*Цена:* ${formatPrice(product.price)}\n\n*Моё имя:* \n*Адрес:* \n*Количество:* 1`
+      ? `Здравствуйте! Хочу оформить заказ в AIDEMA Home.\n\n*Товар:* ${product.name}\n*Бренд:* ${product.brand}\n*Категория:* ${product.categoryLabel || product.category}\n*Цвет:* ${selectedColor ? selectedColor.name : "Не указан"}\n*Цена:* ${formatPrice(product.price)}\n\n*Моё имя:* \n*Телефон:* \n*Адрес:* \n*Количество:* 1`
       : "Здравствуйте! Хочу узнать подробнее о посуде AIDEMA. Помогите, пожалуйста, подобрать подходящий вариант.";
 
     const phone = WHATSAPP_NUMBER.replace(/\D/g, "");
@@ -290,6 +290,38 @@
     updateProductSelection(product);
   }
 
+  async function saveWhatsAppRequest(productId) {
+    try {
+      const supabaseLayer = window.AIDEMA_SUPABASE;
+      if (!productId || !supabaseLayer || !supabaseLayer.isConfigured()) return;
+
+      const product = await window.ProductService.getProductById(productId);
+      const client = supabaseLayer.getClient();
+      if (!product || !client) return;
+
+      const selectedColor = getSelectedColor(product);
+      const productUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(product.id))
+        ? product.id
+        : null;
+      const { error } = await client.from("order_requests").insert({
+        product_id: productUuid,
+        product_slug: product.slug || "",
+        product_name: product.name,
+        brand: product.brand,
+        category: product.categoryLabel || product.category,
+        selected_color: selectedColor ? selectedColor.name : null,
+        price: Number(product.price) || 0,
+        source: "whatsapp",
+        page_url: window.location.href,
+        user_agent: navigator.userAgent || null
+      });
+
+      if (error) console.warn("[AIDEMA] Не удалось сохранить WhatsApp-заявку.", error);
+    } catch (error) {
+      console.warn("[AIDEMA] WhatsApp откроется без сохранения заявки.", error);
+    }
+  }
+
   async function openProductDialog(productId) {
     const product = await window.ProductService.getProductById(productId);
     if (!product) return;
@@ -363,6 +395,11 @@
   }
 
   function bindEvents() {
+    document.addEventListener("click", (event) => {
+      const whatsappLink = event.target.closest("[data-whatsapp-action]");
+      if (whatsappLink) void saveWhatsAppRequest(whatsappLink.dataset.productId);
+    }, true);
+
     elements.search.addEventListener("input", (event) => {
       state.query = event.target.value;
       renderProducts();
